@@ -384,12 +384,27 @@ export const ReceptionPage: React.FC = () => {
 
           </div>
 
-          {/* Generated Digital Ticket Card */}
+          {/* Generated Digital Ticket Card with Thank You Message */}
           {lastGeneratedToken && (
-            <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950 text-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-blue-800/80 relative overflow-hidden">
+            <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950 text-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-blue-800/80 relative overflow-hidden space-y-6 animate-in fade-in zoom-in-95 duration-300">
               <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
-              <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+              {/* THANK YOU BANNER */}
+              <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white p-5 sm:p-6 rounded-2xl shadow-lg flex items-center space-x-4 border border-emerald-400/30">
+                <div className="p-3 bg-white/20 rounded-2xl text-2xl shrink-0">
+                  🎉
+                </div>
+                <div>
+                  <h3 className="text-lg sm:text-xl font-black font-outfit uppercase tracking-tight text-white">
+                    THANK YOU, {lastGeneratedToken.studentName}!
+                  </h3>
+                  <p className="text-xs sm:text-sm text-emerald-100 font-medium mt-0.5">
+                    Your registration for Mirai Orientation 2026 is confirmed.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
                 <div className="flex items-center space-x-2 text-emerald-400 font-extrabold text-xs uppercase tracking-widest">
                   <CheckCircle2 className="w-4 h-4" />
                   <span>REGISTRATION SUCCESSFUL</span>
@@ -400,8 +415,8 @@ export const ReceptionPage: React.FC = () => {
               </div>
 
               {/* TICKET RECEIPT BODY */}
-              <div className="my-6 text-center">
-                <p className="text-xs font-black tracking-widest uppercase text-blue-400">OFFICIAL ORIENTATION TOKEN</p>
+              <div className="my-4 text-center">
+                <p className="text-xs font-black tracking-widest uppercase text-blue-400">YOUR ORIENTATION TOKEN</p>
                 <h2 className="text-6xl sm:text-7xl font-black tracking-tight font-mono text-white my-2 text-blue-300 drop-shadow-md">
                   {lastGeneratedToken.token}
                 </h2>
@@ -427,7 +442,7 @@ export const ReceptionPage: React.FC = () => {
 
               <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
                 <div className="text-xs font-semibold text-slate-300 bg-slate-800/80 py-3 px-4 rounded-2xl border border-slate-700 flex-1">
-                  📢 Proceed to classroom & watch Smartboard for your token announcement.
+                  📢 Please take a seat in the waiting lounge and watch the Smartboard for your token announcement.
                 </div>
 
                 <button
@@ -442,8 +457,8 @@ export const ReceptionPage: React.FC = () => {
           )}
         </div>
 
-        {/* Right Column: Student Search & Recent Queue Feed (5 cols) */}
-        <div className="lg:col-span-5 space-y-6">
+        {/* Right Column: Student Search & Recent Queue Feed (Hidden on mobile screens, shown on desktop) */}
+        <div className="hidden lg:block lg:col-span-5 space-y-6">
           <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
             <div className="flex items-center space-x-2.5 mb-4">
               <Search className="w-5 h-5 text-blue-600" />
