@@ -1,0 +1,14 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const tokenController_js_1 = require("../controllers/tokenController.js");
+const router = (0, express_1.Router)();
+router.get('/tokens', tokenController_js_1.getTokens);
+router.get('/tokens/current', tokenController_js_1.getCurrentToken);
+router.get('/tokens/stats', tokenController_js_1.getStats);
+router.post('/tokens', tokenController_js_1.createToken);
+router.post('/tokens/call-next', tokenController_js_1.callNext);
+router.patch('/tokens/:tokenStr/status', tokenController_js_1.updateTokenStatus);
+router.post('/tokens/:tokenStr/recall', tokenController_js_1.recallToken);
+router.post('/session/reset', tokenController_js_1.resetSession);
+exports.default = router;
