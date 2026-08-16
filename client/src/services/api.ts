@@ -80,4 +80,20 @@ export const api = {
       method: 'POST',
     });
   },
+
+  async updateTableCount(tableCount: number): Promise<{ success: boolean; message: string; tableCount?: number }> {
+    return safeFetchJson(`${API_BASE}/tables/count`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tableCount }),
+    });
+  },
+
+  async updateTableName(tableNumber: number, name: string): Promise<{ success: boolean; message: string; name?: string }> {
+    return safeFetchJson(`${API_BASE}/tables/${tableNumber}/name`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+  },
 };

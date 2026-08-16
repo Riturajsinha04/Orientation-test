@@ -16,6 +16,10 @@ import {
   AlertTriangle,
   ArrowRight,
   CreditCard,
+  Plus,
+  Minus,
+  Settings2,
+  Trash2,
 } from 'lucide-react';
 
 export const ManagementPage: React.FC = () => {
@@ -26,6 +30,7 @@ export const ManagementPage: React.FC = () => {
     onHold: 0,
     completed: 0,
     skipped: 0,
+    tableCount: 4,
     tables: { 1: [], 2: [], 3: [], 4: [] },
   });
 
@@ -35,6 +40,8 @@ export const ManagementPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
   const [loading, setLoading] = useState(false);
+  const [isEditingTables, setIsEditingTables] = useState(false);
+  const [editingTableNames, setEditingTableNames] = useState<Record<number, string>>({});
   const [actionMessage, setActionMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const fetchQueueData = async () => {
@@ -70,6 +77,42 @@ export const ManagementPage: React.FC = () => {
   const showFeedback = (type: 'success' | 'error', text: string) => {
     setActionMessage({ type, text });
     setTimeout(() => setActionMessage(null), 4000);
+  };
+
+  const handleUpdateTableCount = async (newCount: number) => {
+    if (newCount < 1 || newCount > 20) return;
+    setLoading(true);
+    try {
+      const res = await api.updateTableCount(newCount);
+      if (res.success) {
+        showFeedback('success', `Orientation tables updated to ${newCount} tables.`);
+        if (selectedTable > newCount) {
+          setSelectedTable(1);
+        }
+      } else {
+        showFeedback('error', res.message || 'Failed to update table count');
+      }
+    } catch (err: any) {
+      showFeedback('error', err.message || 'Error updating tables');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveTableName = async (tableNum: number, name: string) => {
+    setLoading(true);
+    try {
+      const res = await api.updateTableName(tableNum, name);
+      if (res.success) {
+        showFeedback('success', res.message);
+      } else {
+        showFeedback('error', res.message || 'Failed to update table name');
+      }
+    } catch (err: any) {
+      showFeedback('error', err.message || 'Error updating table name');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCallNext = async (tableNum?: number) => {
@@ -119,6 +162,10 @@ export const ManagementPage: React.FC = () => {
     if (!num || num.length < 10) return num;
     return `${num.slice(0, 3)}****${num.slice(7)}`;
   };
+
+  const activeTableKeys = Object.keys(stats.tables).map(Number);
+  const tableCount = stats.tableCount || Math.max(4, ...activeTableKeys, 1);
+  const tableList = Array.from({ length: tableCount }, (_, i) => i + 1);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -203,18 +250,88 @@ export const ManagementPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Table Capacity Cards Section (2 students max capacity per table) */}
+      {/* Table Capacity Cards Section with Add/Edit Table feature */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-bold text-slate-900 font-outfit">ORIENTATIONS TABLES (MAX 2 CAPACITY)</h3>
-          <span className="text-xs text-slate-500 font-medium">Select a table & click Call Next</span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+          <div>
+            <div className="flex items-center space-x-2">
+              <h3 className="text-lg font-bold text-slate-900 font-outfit">
+                ORIENTATION TABLES ({tableCount} ACTIVE)
+              </h3>
+              <span className="bg-blue-100 text-blue-800 text-xs font-bold px-2.5 py-0.5 rounded-full">
+                MAX 2 SEATS / TABLE
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 font-medium mt-0.5">
+              Select a table & click Call Next, or add new tables dynamically as needed.
+            </p>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <button
+              disabled={loading || tableCount >= 20}
+              onClick={() => handleUpdateTableCount(tableCount + 1)}
+              className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 rounded-xl text-xs font-extrabold flex items-center space-x-1.5 shadow-sm transition-all"
+              title="Add another orientation table"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add Table {tableCount + 1}</span>
+            </button>
+
+            <button
+              onClick={() => setIsEditingTables(!isEditingTables)}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-all flex items-center space-x-1.5 ${
+                isEditingTables
+                  ? 'bg-amber-100 text-amber-900 border-amber-300 shadow-sm'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
+              }`}
+            >
+              <Settings2 className="w-4 h-4" />
+              <span>{isEditingTables ? 'Done Editing' : 'Edit Tables'}</span>
+            </button>
+          </div>
         </div>
 
+        {/* Table Counter Toolbar when Edit Mode is active */}
+        {isEditingTables && (
+          <div className="bg-amber-50/90 border border-amber-200 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4 animate-fadeIn">
+            <div className="flex items-center space-x-3">
+              <span className="text-xs font-black uppercase text-amber-900 tracking-wider">
+                Total Tables Count:
+              </span>
+              <div className="flex items-center space-x-1 bg-white border border-amber-300 rounded-xl p-1 shadow-sm">
+                <button
+                  disabled={tableCount <= 1 || loading}
+                  onClick={() => handleUpdateTableCount(Math.max(1, tableCount - 1))}
+                  className="w-7 h-7 flex items-center justify-center bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 font-bold disabled:opacity-40"
+                  title="Remove last table"
+                >
+                  <Minus className="w-3.5 h-3.5" />
+                </button>
+                <span className="w-10 text-center font-mono font-black text-sm text-slate-900">{tableCount}</span>
+                <button
+                  disabled={tableCount >= 20 || loading}
+                  onClick={() => handleUpdateTableCount(Math.min(20, tableCount + 1))}
+                  className="w-7 h-7 flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold disabled:opacity-40"
+                  title="Add new table"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="text-xs text-amber-800 font-medium">
+              💡 Use <strong>Add Table</strong> or counter to adjust tables count. Type in the <strong>Dedicated Name</strong> box (e.g. Maker Table) to label or clear a table's part.
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-          {[1, 2, 3, 4].map((tbl) => {
+          {tableList.map((tbl) => {
             const tableTokens = stats.tables[tbl] || [];
             const isFull = tableTokens.length >= 2;
             const isSelected = selectedTable === tbl;
+            const tableName = stats.tableNames?.[tbl];
 
             return (
               <div
@@ -226,28 +343,99 @@ export const ManagementPage: React.FC = () => {
                     : 'border-slate-200 hover:border-slate-300 shadow-sm'
                 }`}
               >
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                  <div className="flex items-center space-x-2">
-                    <span className="font-black text-lg text-slate-900 font-outfit">TABLE {tbl}</span>
-                    {isSelected && (
-                      <span className="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                        ACTIVE
+                <div className="flex items-start justify-between pb-3 border-b border-slate-100">
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <span className="font-black text-lg text-slate-900 font-outfit">TABLE {tbl}</span>
+                      {isSelected && (
+                        <span className="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                          ACTIVE
+                        </span>
+                      )}
+                    </div>
+                    {tableName && (
+                      <span className="inline-block mt-1 text-[11px] font-extrabold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md truncate max-w-[170px]">
+                        📌 {tableName}
                       </span>
                     )}
                   </div>
 
-                  <span
-                    className={`text-xs font-bold px-2.5 py-1 rounded-lg ${
-                      isFull
-                        ? 'bg-rose-100 text-rose-800 border border-rose-300 font-black'
-                        : tableTokens.length === 1
-                        ? 'bg-amber-100 text-amber-800'
-                        : 'bg-emerald-100 text-emerald-800'
-                    }`}
-                  >
-                    {tableTokens.length} / 2 {isFull ? 'FULL' : 'SEATS'}
-                  </span>
+                  <div className="flex items-center space-x-2">
+                    <span
+                      className={`text-xs font-bold px-2.5 py-1 rounded-lg ${
+                        isFull
+                          ? 'bg-rose-100 text-rose-800 border border-rose-300 font-black'
+                          : tableTokens.length === 1
+                          ? 'bg-amber-100 text-amber-800'
+                          : 'bg-emerald-100 text-emerald-800'
+                      }`}
+                    >
+                      {tableTokens.length} / 2 {isFull ? 'FULL' : 'SEATS'}
+                    </span>
+
+                    {/* Delete button if in edit mode & table is empty */}
+                    {isEditingTables && tableTokens.length === 0 && tableCount > 1 && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleUpdateTableCount(tableCount - 1);
+                        }}
+                        className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                        title={`Remove Table ${tbl}`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                 </div>
+
+                {/* Inline Dedicated Table Name Editor when Edit Mode is active */}
+                {isEditingTables && (
+                  <div
+                    className="mt-3 pt-2 border-t border-slate-100 flex items-center space-x-1.5"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <input
+                      type="text"
+                      placeholder={`Part / Name (e.g. Maker Table)...`}
+                      value={editingTableNames[tbl] !== undefined ? editingTableNames[tbl] : (tableName || '')}
+                      onChange={(e) => setEditingTableNames({ ...editingTableNames, [tbl]: e.target.value })}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleSaveTableName(
+                            tbl,
+                            editingTableNames[tbl] !== undefined ? editingTableNames[tbl] : (tableName || '')
+                          );
+                        }
+                      }}
+                      className="px-2.5 py-1 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 flex-1 font-semibold text-slate-900 placeholder:text-slate-400"
+                    />
+                    <button
+                      onClick={() =>
+                        handleSaveTableName(
+                          tbl,
+                          editingTableNames[tbl] !== undefined ? editingTableNames[tbl] : (tableName || '')
+                        )
+                      }
+                      className="p-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-sm"
+                      title="Save table dedicated name"
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                    </button>
+                    {(tableName || editingTableNames[tbl]) && (
+                      <button
+                        onClick={() => {
+                          setEditingTableNames({ ...editingTableNames, [tbl]: '' });
+                          handleSaveTableName(tbl, '');
+                        }}
+                        className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-lg text-xs font-bold"
+                        title="Remove dedicated name"
+                      >
+                        <XCircle className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                )}
 
                 {/* Assigned Tokens at Table */}
                 <div className="my-4 space-y-2.5 min-h-[96px]">

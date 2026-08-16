@@ -39,6 +39,16 @@ const SessionSchema = new mongoose_1.Schema({
     sessionId: { type: String, required: true, unique: true },
     title: { type: String, required: true, default: 'Mirai Orientation 2026' },
     date: { type: String, required: true, default: '2026-08-18' },
+    tableCount: { type: Number, default: 4, min: 1, max: 20 },
+    tablesConfig: {
+        type: [
+            {
+                tableNumber: { type: Number, required: true },
+                name: { type: String, default: '' },
+            },
+        ],
+        default: [],
+    },
     isActive: { type: Boolean, default: true },
 }, {
     timestamps: true,

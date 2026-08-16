@@ -37,6 +37,13 @@ const getActiveSessionId = async (): Promise<string> => {
 
 const getCurrentData = async () => {
   const sessionId = await getActiveSessionId();
+  const activeSession = await Session.findOne({ sessionId });
+  const tableNames: Record<number, string> = {};
+  if (activeSession?.tablesConfig) {
+    activeSession.tablesConfig.forEach((tc) => {
+      if (tc.name) tableNames[tc.tableNumber] = tc.name;
+    });
+  }
   
   // Active / Called tokens (up to 12)
   const activeTokens = await Token.find({
@@ -65,11 +72,20 @@ const getCurrentData = async () => {
     waitingTokens,
     nextTokens: waitingTokens.slice(0, 3).map((t) => t.token),
     waitingCount,
+    tableNames,
   };
 };
 
 const getStatsData = async () => {
   const sessionId = await getActiveSessionId();
+  const activeSession = await Session.findOne({ sessionId });
+  const tableCount = activeSession?.tableCount || 4;
+  const tableNames: Record<number, string> = {};
+  if (activeSession?.tablesConfig) {
+    activeSession.tablesConfig.forEach((tc) => {
+      if (tc.name) tableNames[tc.tableNumber] = tc.name;
+    });
+  }
 
   const total = await Token.countDocuments({ sessionId });
   const waiting = await Token.countDocuments({ sessionId, status: 'WAITING' });
@@ -87,7 +103,10 @@ const getStatsData = async () => {
     status: { $in: ['CALLED', 'PROCESSING'] },
   });
 
-  const tableMap: Record<number, IToken[]> = { 1: [], 2: [], 3: [], 4: [] };
+  const tableMap: Record<number, IToken[]> = {};
+  for (let i = 1; i <= tableCount; i++) {
+    tableMap[i] = [];
+  }
   activeTokens.forEach((t) => {
     if (t.tableNumber) {
       if (!tableMap[t.tableNumber]) tableMap[t.tableNumber] = [];
@@ -102,8 +121,84 @@ const getStatsData = async () => {
     onHold,
     completed,
     skipped,
+    tableCount,
+    tableNames,
     tables: tableMap,
   };
+};
+
+export const updateTableCount = async (req: Request, res: Response) => {
+  try {
+    const { tableCount } = req.body;
+    const count = Number(tableCount);
+    if (isNaN(count) || count < 1 || count > 20) {
+      return res.status(400).json({
+        success: false,
+        message: 'Table count must be a number between 1 and 20.',
+      });
+    }
+
+    const sessionId = await getActiveSessionId();
+    const activeSession = await Session.findOne({ sessionId });
+
+    if (activeSession) {
+      activeSession.tableCount = count;
+      await activeSession.save();
+    }
+
+    await notifyQueueUpdate();
+
+    return res.json({
+      success: true,
+      message: `Orientation tables updated to ${count} tables.`,
+      tableCount: count,
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const updateTableName = async (req: Request, res: Response) => {
+  try {
+    const { tableNumber } = req.params;
+    const { name } = req.body;
+    const tableNum = Number(tableNumber);
+
+    if (isNaN(tableNum) || tableNum < 1 || tableNum > 20) {
+      return res.status(400).json({ success: false, message: 'Invalid table number' });
+    }
+
+    const sessionId = await getActiveSessionId();
+    const activeSession = await Session.findOne({ sessionId });
+
+    if (activeSession) {
+      if (!activeSession.tablesConfig) {
+        activeSession.tablesConfig = [];
+      }
+      const existingIndex = activeSession.tablesConfig.findIndex((tc) => tc.tableNumber === tableNum);
+      const cleanName = (name || '').trim();
+
+      if (existingIndex > -1) {
+        activeSession.tablesConfig[existingIndex].name = cleanName;
+      } else {
+        activeSession.tablesConfig.push({ tableNumber: tableNum, name: cleanName });
+      }
+      await activeSession.save();
+    }
+
+    await notifyQueueUpdate();
+
+    return res.json({
+      success: true,
+      message: (name || '').trim()
+        ? `Table ${tableNum} dedicated name updated to "${(name || '').trim()}".`
+        : `Table ${tableNum} dedicated name removed.`,
+      tableNumber: tableNum,
+      name: (name || '').trim(),
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 // 1. Get Tokens List (with search & status filter)

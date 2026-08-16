@@ -11,4 +11,6 @@ router.post('/tokens/call-next', tokenController_js_1.callNext);
 router.patch('/tokens/:tokenStr/status', tokenController_js_1.updateTokenStatus);
 router.post('/tokens/:tokenStr/recall', tokenController_js_1.recallToken);
 router.post('/session/reset', tokenController_js_1.resetSession);
+router.post('/tables/count', tokenController_js_1.updateTableCount);
+router.patch('/tables/:tableNumber/name', tokenController_js_1.updateTableName);
 exports.default = router;

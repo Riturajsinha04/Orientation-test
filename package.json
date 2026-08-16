@@ -1,5 +1,4 @@
 {
-<<<<<<< HEAD
   "name": "mirai-orientation-2026",
   "version": "1.0.0",
   "description": "",
@@ -19,33 +18,5 @@
   },
   "devDependencies": {
     "concurrently": "^10.0.4"
-=======
-  "name": "mirai-orientation-student-reception",
-  "private": true,
-  "version": "1.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "@supabase/supabase-js": "^2.112.3",
-    "lucide-react": "^0.400.0",
-    "qrcode.react": "^3.1.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "socket.io-client": "^4.7.5"
-  },
-  "devDependencies": {
-    "@types/react": "^18.3.3",
-    "@types/react-dom": "^18.3.0",
-    "@vitejs/plugin-react": "^4.3.1",
-    "autoprefixer": "^10.4.19",
-    "postcss": "^8.4.39",
-    "tailwindcss": "^3.4.4",
-    "typescript": "^5.5.3",
-    "vite": "^5.3.3"
->>>>>>> dab3a8fdbc7fe18fe7fa83d3953cc63ff0d27611
   }
 }

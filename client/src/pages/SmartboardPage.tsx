@@ -171,8 +171,11 @@ export const SmartboardPage: React.FC = () => {
                       >
                         {tokenItem.token}
                       </span>
-                      <span className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-extrabold text-xs px-3 py-1 rounded-xl shadow-sm border border-blue-400/30 font-outfit uppercase tracking-wider">
+                      <span className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-extrabold text-xs px-3 py-1 rounded-xl shadow-sm border border-blue-400/30 font-outfit uppercase tracking-wider truncate max-w-[180px]">
                         TABLE {tokenItem.tableNumber || 1}
+                        {tokenItem.tableNumber && data.tableNames?.[tokenItem.tableNumber]
+                          ? ` • ${data.tableNames[tokenItem.tableNumber]}`
+                          : ''}
                       </span>
                     </div>
 

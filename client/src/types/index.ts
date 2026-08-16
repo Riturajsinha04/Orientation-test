@@ -22,6 +22,8 @@ export interface QueueStats {
   onHold: number;
   completed: number;
   skipped: number;
+  tableCount?: number;
+  tableNames?: Record<number, string>;
   tables: Record<number, IToken[]>;
 }
 
@@ -31,6 +33,7 @@ export interface SmartboardData {
   waitingTokens?: IToken[];
   nextTokens: string[];
   waitingCount: number;
+  tableNames?: Record<number, string>;
 }
 
 export type UserRole = 'RECEPTION' | 'MANAGEMENT' | 'DISPLAY';
