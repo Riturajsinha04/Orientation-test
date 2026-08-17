@@ -431,7 +431,7 @@ const recallToken = async (req, res) => {
 };
 exports.recallToken = recallToken;
 // 8. Reset / New Session
-const resetSession = async (req, res) => {
+const resetSession = async (_req, res) => {
     try {
         const newSessionId = `orientation-${Date.now()}`;
         await Session_js_1.Session.updateMany({}, { isActive: false });
