@@ -242,7 +242,6 @@ export const api = {
       const tokenFormatted = `A-${String(newId).padStart(3, '0')}`;
 
       const rowToInsert = {
-        id: newId,
         token: tokenFormatted,
         student_name: payload.studentName.trim(),
         mobile: cleanedMobile,
@@ -252,12 +251,17 @@ export const api = {
         created_at: new Date().toISOString(),
       };
 
-      const { error: insertErr } = await supabase.from('tokens').insert([rowToInsert]);
+      const { data: insertedData, error: insertErr } = await supabase
+        .from('tokens')
+        .insert([rowToInsert])
+        .select();
+
       if (insertErr) {
         return { success: false, message: `Database error: ${insertErr.message}` };
       }
 
-      const generatedToken = formatSupabaseToken(rowToInsert);
+      const insertedRow = insertedData && insertedData.length > 0 ? insertedData[0] : { ...rowToInsert, id: newId };
+      const generatedToken = formatSupabaseToken(insertedRow);
       return { success: true, message: 'Token generated successfully', token: generatedToken };
     } catch (err: any) {
       console.error('Supabase createToken exception:', err);

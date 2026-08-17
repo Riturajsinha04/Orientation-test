@@ -1,8 +1,8 @@
 import { IToken, SmartboardData } from '../types';
 import { getSupabaseClient } from './supabase';
 
-const BACKEND_URL = (import.meta as any).env?.VITE_API_URL || '';
-const API_BASE = BACKEND_URL ? `${BACKEND_URL}/api` : '/api';
+const BACKEND_HOST = (import.meta as any).env?.VITE_API_URL || '';
+const API_BASE = BACKEND_HOST ? `${BACKEND_HOST}/api` : '/api';
 
 // Helper to format Supabase row into frontend IToken
 const formatSupabaseToken = (row: any): IToken => ({
@@ -22,21 +22,25 @@ const formatSupabaseToken = (row: any): IToken => ({
 
 export const api = {
   async getTokens(search = '', status = 'ALL'): Promise<{ success: boolean; tokens: IToken[] }> {
-    try {
-      const params = new URLSearchParams();
-      if (search) params.append('search', search);
-      if (status && status !== 'ALL') params.append('status', status);
-      
-      const res = await fetch(`${API_BASE}/tokens?${params.toString()}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success) return data;
+    if (BACKEND_HOST) {
+      try {
+        const params = new URLSearchParams();
+        if (search) params.append('search', search);
+        if (status && status !== 'ALL') params.append('status', status);
+
+        const res = await fetch(`${API_BASE}/tokens?${params.toString()}`);
+        if (res.ok) {
+          const text = await res.text();
+          if (text) {
+            const data = JSON.parse(text);
+            if (data.success && data.tokens) return data;
+          }
+        }
+      } catch {
+        // Fallback to Supabase
       }
-    } catch {
-      // Fallback to Supabase
     }
 
-    // Direct Supabase Fallback for Vercel deployment
     try {
       const supabase = getSupabaseClient();
       let query = supabase.from('tokens').select('*').order('id', { ascending: false });
@@ -62,35 +66,35 @@ export const api = {
   },
 
   async getSmartboardData(): Promise<{ success: boolean } & SmartboardData> {
-    try {
-      const res = await fetch(`${API_BASE}/tokens/current`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success) return data;
+    if (BACKEND_HOST) {
+      try {
+        const res = await fetch(`${API_BASE}/tokens/current`);
+        if (res.ok) {
+          const text = await res.text();
+          if (text) {
+            const data = JSON.parse(text);
+            if (data.success) return data;
+          }
+        }
+      } catch {
+        // Fallback to Supabase
       }
-    } catch {
-      // Fallback to Supabase
     }
 
-    // Direct Supabase Fallback for Vercel deployment
     try {
       const supabase = getSupabaseClient();
-      
-      // Get current serving/called token
+
       const { data: activeRows } = await supabase
         .from('tokens')
         .select('*')
         .in('status', ['CALLED', 'PROCESSING'])
-        .order('called_at', { ascending: false })
-        .limit(1);
+        .order('called_at', { ascending: false });
 
-      // Get waiting count
       const { count: waitingCount } = await supabase
         .from('tokens')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'WAITING');
 
-      // Get next waiting tokens
       const { data: waitingRows } = await supabase
         .from('tokens')
         .select('*')
@@ -98,7 +102,8 @@ export const api = {
         .order('id', { ascending: true })
         .limit(3);
 
-      const currentToken = activeRows && activeRows.length > 0 ? formatSupabaseToken(activeRows[0]) : null;
+      const activeTokens = activeRows ? activeRows.map(formatSupabaseToken) : [];
+      const currentToken = activeTokens.length > 0 ? activeTokens[0] : null;
       const nextTokens = waitingRows ? waitingRows.map(r => r.token) : [];
 
       return {
@@ -121,27 +126,29 @@ export const api = {
   }): Promise<{ success: boolean; message: string; token?: IToken; isDuplicate?: boolean; existingToken?: string }> {
     const cleanedMobile = String(payload.mobile || '').replace(/\D/g, '');
 
-    // Try Express Backend API first
-    try {
-      const res = await fetch(`${API_BASE}/tokens`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+    if (BACKEND_HOST) {
+      try {
+        const res = await fetch(`${API_BASE}/tokens`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success || data.isDuplicate) return data;
+        if (res.ok) {
+          const text = await res.text();
+          if (text) {
+            const data = JSON.parse(text);
+            if (data.success || data.isDuplicate) return data;
+          }
+        }
+      } catch {
+        // Fallback to Supabase
       }
-    } catch {
-      // Fallback to Supabase
     }
 
-    // Direct Supabase Fallback for Vercel deployment
     try {
       const supabase = getSupabaseClient();
 
-      // 1. Check duplicate mobile number unless explicit override
       if (!payload.allowDuplicate) {
         const { data: existing } = await supabase
           .from('tokens')
@@ -159,7 +166,6 @@ export const api = {
         }
       }
 
-      // 2. Get highest ID for next token number
       const { data: maxRow } = await supabase
         .from('tokens')
         .select('id')
@@ -171,7 +177,6 @@ export const api = {
       const tokenFormatted = `A-${String(newId).padStart(3, '0')}`;
 
       const rowToInsert = {
-        id: newId,
         token: tokenFormatted,
         student_name: payload.studentName.trim(),
         mobile: cleanedMobile,
@@ -181,13 +186,17 @@ export const api = {
         created_at: new Date().toISOString(),
       };
 
-      const { error: insertErr } = await supabase.from('tokens').insert([rowToInsert]);
+      const { data: insertedData, error: insertErr } = await supabase
+        .from('tokens')
+        .insert([rowToInsert])
+        .select();
 
       if (insertErr) {
         return { success: false, message: `Database error: ${insertErr.message}` };
       }
 
-      const generatedToken = formatSupabaseToken(rowToInsert);
+      const insertedRow = insertedData && insertedData.length > 0 ? insertedData[0] : { ...rowToInsert, id: newId };
+      const generatedToken = formatSupabaseToken(insertedRow);
 
       return {
         success: true,
