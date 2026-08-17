@@ -47,7 +47,7 @@ export const api = {
       let query = supabase.from('tokens').select('*').order('id', { ascending: false });
 
       if (status && status !== 'ALL') {
-        query = query.eq('status', status);
+        query = query.ilike('status', status);
       }
 
       if (search && search.trim()) {
@@ -85,37 +85,46 @@ export const api = {
     // Direct Supabase Query (Primary for Vercel deployment)
     try {
       const supabase = getSupabaseClient();
-
-      // Get active / called / processing tokens
-      const { data: activeRows } = await supabase
+      const { data: allRows, error } = await supabase
         .from('tokens')
         .select('*')
-        .in('status', ['CALLED', 'PROCESSING'])
-        .order('called_at', { ascending: false });
+        .order('id', { ascending: false });
 
-      // Get waiting tokens
-      const { data: waitingRows } = await supabase
-        .from('tokens')
-        .select('*')
-        .eq('status', 'WAITING')
-        .order('id', { ascending: true });
+      if (error) {
+        console.error('Supabase getSmartboardData error:', error);
+      }
 
-      const activeTokens = activeRows ? activeRows.map(formatSupabaseToken) : [];
-      const waitingTokens = waitingRows ? waitingRows.map(formatSupabaseToken) : [];
-      const currentToken = activeTokens.length > 0 ? activeTokens[0] : null;
+      if (allRows) {
+        const formatted = allRows.map(formatSupabaseToken);
 
-      return {
-        success: true,
-        currentToken,
-        activeTokens,
-        waitingTokens,
-        nextTokens: waitingTokens.slice(0, 3).map((t) => t.token),
-        waitingCount: waitingTokens.length,
-      };
+        const activeTokens = formatted.filter((t) => {
+          const s = (t.status || '').toUpperCase();
+          return s === 'CALLED' || s === 'PROCESSING';
+        });
+
+        const waitingTokens = formatted
+          .filter((t) => {
+            const s = (t.status || '').toUpperCase();
+            return s === 'WAITING' || s === 'PENDING' || s === 'NEW' || !s;
+          })
+          .reverse(); // Reverse so lowest token number is first in queue
+
+        const currentToken = activeTokens.length > 0 ? activeTokens[0] : null;
+
+        return {
+          success: true,
+          currentToken,
+          activeTokens,
+          waitingTokens,
+          nextTokens: waitingTokens.slice(0, 3).map((t) => t.token),
+          waitingCount: waitingTokens.length,
+        };
+      }
     } catch (err) {
-      console.error('Supabase getSmartboardData error:', err);
-      return { success: false, currentToken: null, activeTokens: [], waitingTokens: [], nextTokens: [], waitingCount: 0 };
+      console.error('Supabase getSmartboardData exception:', err);
     }
+
+    return { success: false, currentToken: null, activeTokens: [], waitingTokens: [], nextTokens: [], waitingCount: 0 };
   },
 
   async getStats(): Promise<{ success: boolean; stats: QueueStats }> {
@@ -141,15 +150,24 @@ export const api = {
 
       if (allRows) {
         const formatted = allRows.map(formatSupabaseToken);
-        const waiting = formatted.filter((t) => t.status === 'WAITING').length;
-        const processing = formatted.filter((t) => t.status === 'PROCESSING' || t.status === 'CALLED').length;
-        const onHold = formatted.filter((t) => t.status === 'ON_HOLD').length;
-        const completed = formatted.filter((t) => t.status === 'COMPLETED').length;
-        const skipped = formatted.filter((t) => t.status === 'SKIPPED').length;
+        const waiting = formatted.filter((t) => {
+          const s = (t.status || '').toUpperCase();
+          return s === 'WAITING' || s === 'PENDING' || s === 'NEW' || !s;
+        }).length;
+
+        const processing = formatted.filter((t) => {
+          const s = (t.status || '').toUpperCase();
+          return s === 'PROCESSING' || s === 'CALLED';
+        }).length;
+
+        const onHold = formatted.filter((t) => (t.status || '').toUpperCase() === 'ON_HOLD').length;
+        const completed = formatted.filter((t) => (t.status || '').toUpperCase() === 'COMPLETED').length;
+        const skipped = formatted.filter((t) => (t.status || '').toUpperCase() === 'SKIPPED').length;
 
         const tablesMap: Record<number, IToken[]> = { 1: [], 2: [], 3: [], 4: [] };
         formatted.forEach((t) => {
-          if (t.tableNumber && (t.status === 'CALLED' || t.status === 'PROCESSING')) {
+          const s = (t.status || '').toUpperCase();
+          if (t.tableNumber && (s === 'CALLED' || s === 'PROCESSING')) {
             const num = Number(t.tableNumber);
             if (!tablesMap[num]) tablesMap[num] = [];
             tablesMap[num].push(t);
@@ -294,7 +312,7 @@ export const api = {
       const { data: waitingRows } = await supabase
         .from('tokens')
         .select('*')
-        .eq('status', 'WAITING')
+        .or('status.eq.WAITING,status.eq.waiting,status.eq.PENDING,status.is.null')
         .order('id', { ascending: true })
         .limit(1);
 
