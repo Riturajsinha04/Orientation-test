@@ -45,6 +45,11 @@ export const SmartboardPage: React.FC = () => {
   useEffect(() => {
     fetchSmartboard();
 
+    // Fast polling fallback for Vercel cloud deployment (every 2.5s)
+    const pollingInterval = setInterval(() => {
+      fetchSmartboard();
+    }, 2500);
+
     const socket = getSocket();
 
     const handleSmartboardUpdate = (updatedData: SmartboardData) => {
@@ -67,6 +72,7 @@ export const SmartboardPage: React.FC = () => {
     socket.on('queue:updated', fetchSmartboard);
 
     return () => {
+      clearInterval(pollingInterval);
       socket.off('smartboard:updated', handleSmartboardUpdate);
       socket.off('token:called', handleTokenCalled);
       socket.off('queue:updated', fetchSmartboard);

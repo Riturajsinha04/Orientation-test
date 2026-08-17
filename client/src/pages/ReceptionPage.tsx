@@ -74,6 +74,10 @@ export const ReceptionPage: React.FC<ReceptionPageProps> = ({ isStudentSelfMode 
   useEffect(() => {
     fetchLiveStatsAndRecent();
 
+    const pollingInterval = setInterval(() => {
+      fetchLiveStatsAndRecent();
+    }, 2500);
+
     const socket = getSocket();
     const handleUpdate = () => {
       fetchLiveStatsAndRecent();
@@ -84,6 +88,7 @@ export const ReceptionPage: React.FC<ReceptionPageProps> = ({ isStudentSelfMode 
     socket.on('token:updated', handleUpdate);
 
     return () => {
+      clearInterval(pollingInterval);
       socket.off('queue:updated', handleUpdate);
       socket.off('token:created', handleUpdate);
       socket.off('token:updated', handleUpdate);

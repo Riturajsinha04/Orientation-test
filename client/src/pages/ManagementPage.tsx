@@ -60,6 +60,10 @@ export const ManagementPage: React.FC = () => {
   useEffect(() => {
     fetchQueueData();
 
+    const pollingInterval = setInterval(() => {
+      fetchQueueData();
+    }, 2500);
+
     const socket = getSocket();
     const handleUpdate = () => fetchQueueData();
 
@@ -68,6 +72,7 @@ export const ManagementPage: React.FC = () => {
     socket.on('token:updated', handleUpdate);
 
     return () => {
+      clearInterval(pollingInterval);
       socket.off('queue:updated', handleUpdate);
       socket.off('token:created', handleUpdate);
       socket.off('token:updated', handleUpdate);
