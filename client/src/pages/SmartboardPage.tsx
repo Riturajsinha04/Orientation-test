@@ -250,8 +250,8 @@ export const SmartboardPage: React.FC = () => {
               <p className="text-xs text-slate-500 mt-1">Reception will add new registered students here</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 content-start flex-1 overflow-y-auto max-h-[600px] pr-1">
-              {waitingList.slice(0, 12).map((t, idx) => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 content-start flex-1 overflow-y-auto max-h-[650px] pr-1">
+              {waitingList.map((t, idx) => (
                 <div
                   key={t._id || idx}
                   className="bg-slate-900/90 border border-slate-800/80 hover:border-indigo-800/60 p-3.5 rounded-2xl flex items-center justify-between transition-all"
