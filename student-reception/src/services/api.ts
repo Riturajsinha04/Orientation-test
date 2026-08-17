@@ -31,7 +31,7 @@ export const api = {
         const res = await fetch(`${API_BASE}/tokens?${params.toString()}`);
         if (res.ok) {
           const text = await res.text();
-          if (text) {
+          if (text && (text.startsWith('{') || text.startsWith('['))) {
             const data = JSON.parse(text);
             if (data.success && data.tokens) return data;
           }
@@ -71,7 +71,7 @@ export const api = {
         const res = await fetch(`${API_BASE}/tokens/current`);
         if (res.ok) {
           const text = await res.text();
-          if (text) {
+          if (text && (text.startsWith('{') || text.startsWith('['))) {
             const data = JSON.parse(text);
             if (data.success) return data;
           }
@@ -136,7 +136,7 @@ export const api = {
 
         if (res.ok) {
           const text = await res.text();
-          if (text) {
+          if (text && (text.startsWith('{') || text.startsWith('['))) {
             const data = JSON.parse(text);
             if (data.success || data.isDuplicate) return data;
           }

@@ -2,7 +2,7 @@ import { IToken, QueueStats, SmartboardData } from '../types';
 import { getSupabaseClient } from './supabase';
 
 const BACKEND_HOST = (import.meta as any).env?.VITE_API_URL || '';
-const API_BASE = BACKEND_HOST ? `${BACKEND_HOST}/api` : '/api';
+const API_BASE = BACKEND_HOST ? `${BACKEND_HOST}/api` : '';
 
 // Helper to format Supabase row into frontend IToken
 const formatSupabaseToken = (row: any): IToken => ({
@@ -31,17 +31,17 @@ export const api = {
         const res = await fetch(`${API_BASE}/tokens?${params.toString()}`);
         if (res.ok) {
           const text = await res.text();
-          if (text) {
+          if (text && (text.startsWith('{') || text.startsWith('['))) {
             const data = JSON.parse(text);
             if (data.success && data.tokens) return data;
           }
         }
-      } catch {
-        // Fallback to Supabase
+      } catch (err) {
+        console.warn('Backend API getTokens failed, falling back to Supabase:', err);
       }
     }
 
-    // Direct Supabase Query (for Vercel deployment)
+    // Direct Supabase Query (Primary for Vercel deployment)
     try {
       const supabase = getSupabaseClient();
       let query = supabase.from('tokens').select('*').order('id', { ascending: false });
@@ -72,17 +72,17 @@ export const api = {
         const res = await fetch(`${API_BASE}/tokens/current`);
         if (res.ok) {
           const text = await res.text();
-          if (text) {
+          if (text && (text.startsWith('{') || text.startsWith('['))) {
             const data = JSON.parse(text);
             if (data.success) return data;
           }
         }
-      } catch {
-        // Fallback to Supabase
+      } catch (err) {
+        console.warn('Backend API getSmartboardData failed, falling back to Supabase:', err);
       }
     }
 
-    // Direct Supabase Query (for Vercel deployment)
+    // Direct Supabase Query (Primary for Vercel deployment)
     try {
       const supabase = getSupabaseClient();
 
@@ -124,17 +124,17 @@ export const api = {
         const res = await fetch(`${API_BASE}/tokens/stats`);
         if (res.ok) {
           const text = await res.text();
-          if (text) {
+          if (text && (text.startsWith('{') || text.startsWith('['))) {
             const data = JSON.parse(text);
             if (data.success) return data;
           }
         }
-      } catch {
-        // Fallback to Supabase
+      } catch (err) {
+        console.warn('Backend API getStats failed, falling back to Supabase:', err);
       }
     }
 
-    // Direct Supabase Query (for Vercel deployment)
+    // Direct Supabase Query (Primary for Vercel deployment)
     try {
       const supabase = getSupabaseClient();
       const { data: allRows } = await supabase.from('tokens').select('*');
@@ -200,17 +200,17 @@ export const api = {
         });
         if (res.ok) {
           const text = await res.text();
-          if (text) {
+          if (text && (text.startsWith('{') || text.startsWith('['))) {
             const data = JSON.parse(text);
             if (data.success || data.isDuplicate) return data;
           }
         }
-      } catch {
-        // Fallback to Supabase
+      } catch (err) {
+        console.warn('Backend API createToken failed, falling back to Supabase:', err);
       }
     }
 
-    // Direct Supabase Write (for Vercel deployment)
+    // Direct Supabase Write (Primary for Vercel deployment)
     try {
       const supabase = getSupabaseClient();
 
@@ -279,13 +279,13 @@ export const api = {
         });
         if (res.ok) {
           const text = await res.text();
-          if (text) {
+          if (text && (text.startsWith('{') || text.startsWith('['))) {
             const data = JSON.parse(text);
             if (data.success) return data;
           }
         }
-      } catch {
-        // Fallback to Supabase
+      } catch (err) {
+        console.warn('Backend API callNext failed, falling back to Supabase:', err);
       }
     }
 
@@ -334,13 +334,13 @@ export const api = {
         });
         if (res.ok) {
           const text = await res.text();
-          if (text) {
+          if (text && (text.startsWith('{') || text.startsWith('['))) {
             const data = JSON.parse(text);
             if (data.success) return data;
           }
         }
-      } catch {
-        // Fallback to Supabase
+      } catch (err) {
+        console.warn('Backend API updateStatus failed, falling back to Supabase:', err);
       }
     }
 
@@ -369,13 +369,13 @@ export const api = {
         const res = await fetch(`${API_BASE}/tokens/${tokenStr}/recall`, { method: 'POST' });
         if (res.ok) {
           const text = await res.text();
-          if (text) {
+          if (text && (text.startsWith('{') || text.startsWith('['))) {
             const data = JSON.parse(text);
             if (data.success) return data;
           }
         }
-      } catch {
-        // Fallback to Supabase
+      } catch (err) {
+        console.warn('Backend API recallToken failed, falling back to Supabase:', err);
       }
     }
 
@@ -397,10 +397,10 @@ export const api = {
         const res = await fetch(`${API_BASE}/session/reset`, { method: 'POST' });
         if (res.ok) {
           const text = await res.text();
-          if (text) return JSON.parse(text);
+          if (text && (text.startsWith('{') || text.startsWith('['))) return JSON.parse(text);
         }
-      } catch {
-        // Fallback
+      } catch (err) {
+        console.warn('Backend API resetSession failed, falling back:', err);
       }
     }
     return { success: true, message: 'Session reset', sessionId: 'orientation-2026' };
