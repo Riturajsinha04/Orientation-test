@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { IToken } from '../types';
 import { api } from '../services/api';
 import { getSocket } from '../services/socket';
+import { getSupabaseClient } from '../services/supabase';
 import {
   UserPlus,
   Search,
@@ -76,7 +77,7 @@ export const ReceptionPage: React.FC<ReceptionPageProps> = ({ isStudentSelfMode 
 
     const pollingInterval = setInterval(() => {
       fetchLiveStatsAndRecent();
-    }, 2500);
+    }, 1500);
 
     const socket = getSocket();
     const handleUpdate = () => {
@@ -87,11 +88,32 @@ export const ReceptionPage: React.FC<ReceptionPageProps> = ({ isStudentSelfMode 
     socket.on('token:created', handleUpdate);
     socket.on('token:updated', handleUpdate);
 
+    // Direct Supabase Realtime Listener
+    let realtimeChannel: any = null;
+    try {
+      const supabase = getSupabaseClient();
+      realtimeChannel = supabase
+        .channel('reception-db-realtime')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'tokens' },
+          () => {
+            fetchLiveStatsAndRecent();
+          }
+        )
+        .subscribe();
+    } catch (err) {
+      console.warn('Supabase Realtime notice:', err);
+    }
+
     return () => {
       clearInterval(pollingInterval);
       socket.off('queue:updated', handleUpdate);
       socket.off('token:created', handleUpdate);
       socket.off('token:updated', handleUpdate);
+      if (realtimeChannel) {
+        getSupabaseClient().removeChannel(realtimeChannel);
+      }
     };
   }, [searchQuery]);
 

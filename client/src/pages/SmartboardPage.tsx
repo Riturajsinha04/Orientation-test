@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { SmartboardData, IToken } from '../types';
 import { api } from '../services/api';
 import { getSocket } from '../services/socket';
+import { getSupabaseClient } from '../services/supabase';
 import { playChime } from '../utils/audio';
 import { Volume2, VolumeX, Radio, Users, Building2, Clock, Megaphone } from 'lucide-react';
 
@@ -45,10 +46,10 @@ export const SmartboardPage: React.FC = () => {
   useEffect(() => {
     fetchSmartboard();
 
-    // Fast polling fallback for Vercel cloud deployment (every 2.5s)
+    // Fast 1.5s polling fallback for cloud deployment
     const pollingInterval = setInterval(() => {
       fetchSmartboard();
-    }, 2500);
+    }, 1500);
 
     const socket = getSocket();
 
@@ -71,11 +72,35 @@ export const SmartboardPage: React.FC = () => {
     socket.on('token:called', handleTokenCalled);
     socket.on('queue:updated', fetchSmartboard);
 
+    // Direct Supabase Realtime Listener for instant live updates across Vercel deployments
+    let realtimeChannel: any = null;
+    try {
+      const supabase = getSupabaseClient();
+      realtimeChannel = supabase
+        .channel('smartboard-db-realtime')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'tokens' },
+          (payload) => {
+            fetchSmartboard();
+            if (payload.eventType === 'UPDATE' && payload.new?.status === 'CALLED') {
+              triggerCallEffect();
+            }
+          }
+        )
+        .subscribe();
+    } catch (err) {
+      console.warn('Supabase Realtime notice:', err);
+    }
+
     return () => {
       clearInterval(pollingInterval);
       socket.off('smartboard:updated', handleSmartboardUpdate);
       socket.off('token:called', handleTokenCalled);
       socket.off('queue:updated', fetchSmartboard);
+      if (realtimeChannel) {
+        getSupabaseClient().removeChannel(realtimeChannel);
+      }
     };
   }, [soundEnabled]);
 
