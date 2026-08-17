@@ -1,6 +1,7 @@
 import { IToken, QueueStats, SmartboardData } from '../types';
 
-const API_BASE = '/api';
+const BACKEND_HOST = (import.meta as any).env?.VITE_API_URL || '';
+const API_BASE = BACKEND_HOST ? `${BACKEND_HOST}/api` : '/api';
 
 const safeFetchJson = async (url: string, options?: RequestInit) => {
   try {
