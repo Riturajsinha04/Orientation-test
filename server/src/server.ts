@@ -70,16 +70,21 @@ const connectDB = async () => {
   }
 };
 
-connectDB()
-  .then(() => {
-    server.listen(PORT, () => {
-      console.log(`====================================================`);
-      console.log(`Mirai Orientation 2026 Server running on port ${PORT}`);
-      console.log(`API URL: http://localhost:${PORT}/api`);
-      console.log(`====================================================`);
+if (!process.env.VERCEL) {
+  connectDB()
+    .then(() => {
+      server.listen(PORT, () => {
+        console.log(`====================================================`);
+        console.log(`Mirai Orientation 2026 Server running on port ${PORT}`);
+        console.log(`API URL: http://localhost:${PORT}/api`);
+        console.log(`====================================================`);
+      });
+    })
+    .catch((err) => {
+      console.error('[Fatal] Failed to start server:', err);
     });
-  })
-  .catch((err) => {
-    console.error('[Fatal] Failed to start server:', err);
-    process.exit(1);
-  });
+}
+
+export { app, server };
+export default app;
+

@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.server = exports.app = void 0;
 const express_1 = __importDefault(require("express"));
 const http_1 = __importDefault(require("http"));
 const socket_io_1 = require("socket.io");
@@ -12,7 +13,9 @@ const mongodb_memory_server_1 = require("mongodb-memory-server");
 const tokenRoutes_js_1 = __importDefault(require("./routes/tokenRoutes.js"));
 const tokenController_js_1 = require("./controllers/tokenController.js");
 const app = (0, express_1.default)();
+exports.app = app;
 const server = http_1.default.createServer(app);
+exports.server = server;
 const io = new socket_io_1.Server(server, {
     cors: {
         origin: '*',
@@ -65,16 +68,18 @@ const connectDB = async () => {
         console.log(`[Database] Connected successfully to MongoDB Memory Server at ${memoryUri}`);
     }
 };
-connectDB()
-    .then(() => {
-    server.listen(PORT, () => {
-        console.log(`====================================================`);
-        console.log(`Mirai Orientation 2026 Server running on port ${PORT}`);
-        console.log(`API URL: http://localhost:${PORT}/api`);
-        console.log(`====================================================`);
+if (!process.env.VERCEL) {
+    connectDB()
+        .then(() => {
+        server.listen(PORT, () => {
+            console.log(`====================================================`);
+            console.log(`Mirai Orientation 2026 Server running on port ${PORT}`);
+            console.log(`API URL: http://localhost:${PORT}/api`);
+            console.log(`====================================================`);
+        });
+    })
+        .catch((err) => {
+        console.error('[Fatal] Failed to start server:', err);
     });
-})
-    .catch((err) => {
-    console.error('[Fatal] Failed to start server:', err);
-    process.exit(1);
-});
+}
+exports.default = app;

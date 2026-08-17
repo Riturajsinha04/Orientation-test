@@ -7,6 +7,10 @@
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "dev:server": "npm --prefix server run dev",
     "dev:client": "npm --prefix client run dev",
+    "build": "npm --prefix client run build && mkdir -p dist && cp -r client/dist/* dist/",
+    "build:client": "npm --prefix client run build",
+    "build:reception": "npm --prefix student-reception run build && mkdir -p dist && cp -r student-reception/dist/* dist/",
+    "build:server": "npm --prefix server run build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
