@@ -22,22 +22,23 @@ const formatSupabaseToken = (row: any): IToken => ({
 
 export const api = {
   async getTokens(search = '', status = 'ALL'): Promise<{ success: boolean; tokens: IToken[] }> {
-    // Try Express Backend API first
-    try {
-      const params = new URLSearchParams();
-      if (search) params.append('search', search);
-      if (status && status !== 'ALL') params.append('status', status);
+    if (BACKEND_HOST) {
+      try {
+        const params = new URLSearchParams();
+        if (search) params.append('search', search);
+        if (status && status !== 'ALL') params.append('status', status);
 
-      const res = await fetch(`${API_BASE}/tokens?${params.toString()}`);
-      if (res.ok) {
-        const text = await res.text();
-        if (text) {
-          const data = JSON.parse(text);
-          if (data.success && data.tokens && data.tokens.length > 0) return data;
+        const res = await fetch(`${API_BASE}/tokens?${params.toString()}`);
+        if (res.ok) {
+          const text = await res.text();
+          if (text) {
+            const data = JSON.parse(text);
+            if (data.success && data.tokens) return data;
+          }
         }
+      } catch {
+        // Fallback to Supabase
       }
-    } catch {
-      // Fallback to Supabase
     }
 
     // Direct Supabase Query (for Vercel deployment)
@@ -66,17 +67,19 @@ export const api = {
   },
 
   async getSmartboardData(): Promise<{ success: boolean } & SmartboardData> {
-    try {
-      const res = await fetch(`${API_BASE}/tokens/current`);
-      if (res.ok) {
-        const text = await res.text();
-        if (text) {
-          const data = JSON.parse(text);
-          if (data.success && (data.currentToken || (data.activeTokens && data.activeTokens.length > 0))) return data;
+    if (BACKEND_HOST) {
+      try {
+        const res = await fetch(`${API_BASE}/tokens/current`);
+        if (res.ok) {
+          const text = await res.text();
+          if (text) {
+            const data = JSON.parse(text);
+            if (data.success) return data;
+          }
         }
+      } catch {
+        // Fallback to Supabase
       }
-    } catch {
-      // Fallback to Supabase
     }
 
     // Direct Supabase Query (for Vercel deployment)
@@ -116,17 +119,19 @@ export const api = {
   },
 
   async getStats(): Promise<{ success: boolean; stats: QueueStats }> {
-    try {
-      const res = await fetch(`${API_BASE}/tokens/stats`);
-      if (res.ok) {
-        const text = await res.text();
-        if (text) {
-          const data = JSON.parse(text);
-          if (data.success && data.stats && data.stats.total > 0) return data;
+    if (BACKEND_HOST) {
+      try {
+        const res = await fetch(`${API_BASE}/tokens/stats`);
+        if (res.ok) {
+          const text = await res.text();
+          if (text) {
+            const data = JSON.parse(text);
+            if (data.success) return data;
+          }
         }
+      } catch {
+        // Fallback to Supabase
       }
-    } catch {
-      // Fallback to Supabase
     }
 
     // Direct Supabase Query (for Vercel deployment)
@@ -186,21 +191,23 @@ export const api = {
   }): Promise<{ success: boolean; message: string; token?: IToken; isDuplicate?: boolean; existingToken?: string }> {
     const cleanedMobile = String(payload.mobile || '').replace(/\D/g, '');
 
-    try {
-      const res = await fetch(`${API_BASE}/tokens`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (res.ok) {
-        const text = await res.text();
-        if (text) {
-          const data = JSON.parse(text);
-          if (data.success || data.isDuplicate) return data;
+    if (BACKEND_HOST) {
+      try {
+        const res = await fetch(`${API_BASE}/tokens`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (res.ok) {
+          const text = await res.text();
+          if (text) {
+            const data = JSON.parse(text);
+            if (data.success || data.isDuplicate) return data;
+          }
         }
+      } catch {
+        // Fallback to Supabase
       }
-    } catch {
-      // Fallback to Supabase
     }
 
     // Direct Supabase Write (for Vercel deployment)
@@ -259,21 +266,23 @@ export const api = {
   },
 
   async callNext(tableNumber: number): Promise<{ success: boolean; message: string; token?: IToken }> {
-    try {
-      const res = await fetch(`${API_BASE}/tokens/call-next`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tableNumber }),
-      });
-      if (res.ok) {
-        const text = await res.text();
-        if (text) {
-          const data = JSON.parse(text);
-          if (data.success) return data;
+    if (BACKEND_HOST) {
+      try {
+        const res = await fetch(`${API_BASE}/tokens/call-next`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tableNumber }),
+        });
+        if (res.ok) {
+          const text = await res.text();
+          if (text) {
+            const data = JSON.parse(text);
+            if (data.success) return data;
+          }
         }
+      } catch {
+        // Fallback to Supabase
       }
-    } catch {
-      // Fallback to Supabase
     }
 
     try {
@@ -312,21 +321,23 @@ export const api = {
     status: string,
     tableNumber?: number
   ): Promise<{ success: boolean; message: string; token?: IToken }> {
-    try {
-      const res = await fetch(`${API_BASE}/tokens/${tokenStr}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status, tableNumber }),
-      });
-      if (res.ok) {
-        const text = await res.text();
-        if (text) {
-          const data = JSON.parse(text);
-          if (data.success) return data;
+    if (BACKEND_HOST) {
+      try {
+        const res = await fetch(`${API_BASE}/tokens/${tokenStr}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status, tableNumber }),
+        });
+        if (res.ok) {
+          const text = await res.text();
+          if (text) {
+            const data = JSON.parse(text);
+            if (data.success) return data;
+          }
         }
+      } catch {
+        // Fallback to Supabase
       }
-    } catch {
-      // Fallback to Supabase
     }
 
     try {
@@ -349,17 +360,19 @@ export const api = {
   },
 
   async recallToken(tokenStr: string): Promise<{ success: boolean; message: string; token?: IToken }> {
-    try {
-      const res = await fetch(`${API_BASE}/tokens/${tokenStr}/recall`, { method: 'POST' });
-      if (res.ok) {
-        const text = await res.text();
-        if (text) {
-          const data = JSON.parse(text);
-          if (data.success) return data;
+    if (BACKEND_HOST) {
+      try {
+        const res = await fetch(`${API_BASE}/tokens/${tokenStr}/recall`, { method: 'POST' });
+        if (res.ok) {
+          const text = await res.text();
+          if (text) {
+            const data = JSON.parse(text);
+            if (data.success) return data;
+          }
         }
+      } catch {
+        // Fallback to Supabase
       }
-    } catch {
-      // Fallback to Supabase
     }
 
     try {
@@ -375,14 +388,16 @@ export const api = {
   },
 
   async resetSession(): Promise<{ success: boolean; message: string; sessionId: string }> {
-    try {
-      const res = await fetch(`${API_BASE}/session/reset`, { method: 'POST' });
-      if (res.ok) {
-        const text = await res.text();
-        if (text) return JSON.parse(text);
+    if (BACKEND_HOST) {
+      try {
+        const res = await fetch(`${API_BASE}/session/reset`, { method: 'POST' });
+        if (res.ok) {
+          const text = await res.text();
+          if (text) return JSON.parse(text);
+        }
+      } catch {
+        // Fallback
       }
-    } catch {
-      // Fallback
     }
     return { success: true, message: 'Session reset', sessionId: 'orientation-2026' };
   },
